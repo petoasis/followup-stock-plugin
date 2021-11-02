@@ -13,3 +13,6 @@ Style of this page is ingnored in evaluation process
 - Good knowledge of SQL
 - Good knowldge of WordPress & Woocommerce plugin development and themes
 - Good knowledge of WordPress Restful API
+# Salary
+we need a part time developer and the salary based on experience withi minimum 400$
+if we do not take any developers the person his code merged on this repo will got 100$ as a gift
