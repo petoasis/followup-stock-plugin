@@ -36,7 +36,7 @@ function register_stock_options() {
         add_option('fup_in_stock_products',$product_array,'','yes');
     }
 }
-add_action( 'init', 'scratchcode_run_code_one_time' );
+add_action( 'init', 'register_stock_options' );
 
 /*
  * Get Out-in-stock products Table
