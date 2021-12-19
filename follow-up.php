@@ -42,6 +42,10 @@ add_action( 'init', 'register_stock_options' );
  * Get Out-in-stock products Table
  */
 function out_in_stock_products(){
+    $page_get=$_GET['page_id'];
+    if(empty($page_get)){
+        $page_get=1;
+    }
     ?>
     <h2>Out of stock products</h2>
     <table>
@@ -53,17 +57,26 @@ function out_in_stock_products(){
         </tr>
         </thead>
         <tbody>
-            <?php
-            $out_stock_data=get_option('fup_out_of_stock_products');
-            foreach ($out_stock_data as $outs){
-                $os=explode("|", $outs );
-                echo "<tr><td><a href='".get_site_url()."/wp-admin/post.php?post=".$os[0]."&action=edit'>".get_the_title($os[0])."</a></td><td>".$os[0]."</td><td>".$os[1]."</td></tr>";
-                
-            }
+        <?php
+        $out_stock_data=get_option('fup_out_of_stock_products');
+        $number_of_pagenation=(int)(count($out_stock_data)/50)+1;
+        $pag_for=(int)$page_get*50;
+        $loop_start=(int)$pag_for-50;
+        for($i=$loop_start;$i<=$pag_for;$i++){
+            $os=explode("|", $out_stock_data[$i]);
+            echo "<tr><td><a href='".get_site_url()."/wp-admin/post.php?post=".$os[0]."&action=edit'>".get_the_title($os[0])."</a></td><td>".$os[0]."</td><td>".$os[1]."</td></tr>";
+
+        }
             ?>
-            <td></td>
+        <td></td>
         </tbody>
     </table>
+    <?php
+    for($nn=1;$nn<=$number_of_pagenation;$nn++){
+        echo "<a href='".get_site_url().'/wp-admin/admin.php?page=follow-up-id&page_id='.$nn."'>".$nn."</a> | ";
+    }
+
+    ?>
     <h2>IN stock products</h2>
     <table>
         <thead>
@@ -75,16 +88,21 @@ function out_in_stock_products(){
         </thead>
         <tbody>
         <?php
-        $in_stock_data=get_option('fup_in_stock_products');
-        foreach ($in_stock_data as $ins){
-            $in=explode("|", $ins );
-            echo "<tr><td><a href='".get_site_url()."/wp-admin/post.php?post=".$in[0]."&action=edit'>".get_the_title($in[0])."</a></td><td>".$in[0]."</td><td>".$in[1]."</td></tr>";
+        $out_stock_data=get_option('fup_in_stock_products');
+        $number_of_pagenation=(int)(count($out_stock_data)/50)+1;
+        $pag_for=(int)$page_get*50;
+        $loop_start=(int)$pag_for-50;
+        for($i=$loop_start;$i<=$pag_for;$i++){
+            $os=explode("|", $out_stock_data[$i]);
+            echo "<tr><td><a href='".get_site_url()."/wp-admin/post.php?post=".$os[0]."&action=edit'>".get_the_title($os[0])."</a></td><td>".$os[0]."</td><td>".$os[1]."</td></tr>";
+
         }
         ?>
+
         <td></td>
         </tbody>
     </table>
-<?php
+    <?php
 }
 
 /*
