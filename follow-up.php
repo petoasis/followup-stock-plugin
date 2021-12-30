@@ -46,62 +46,36 @@ function out_in_stock_products(){
     if(empty($page_get)){
         $page_get=1;
     }
-    ?>
-    <h2>Out of stock products</h2>
-    <table>
-        <thead>
-        <tr>
-            <th>Product name</th>
-            <th>Product ID</th>
-            <th>Date</th>
-        </tr>
-        </thead>
-        <tbody>
-        <?php
-        $out_stock_data=get_option('fup_out_of_stock_products');
-        $number_of_pagenation=(int)(count($out_stock_data)/50)+1;
-        $pag_for=(int)$page_get*50;
-        $loop_start=(int)$pag_for-50;
-        for($i=$loop_start;$i<=$pag_for;$i++){
-            $os=explode("|", $out_stock_data[$i]);
-            echo "<tr><td><a href='".get_site_url()."/wp-admin/post.php?post=".$os[0]."&action=edit'>".get_the_title($os[0])."</a></td><td>".$os[0]."</td><td>".$os[1]."</td></tr>";
+    $outs = new Followup_List_Table();
+    $type="fup_out_of_stock_products";
+    $outs->prepare_items($type);
 
-        }
-            ?>
-        <td></td>
-        </tbody>
-    </table>
-    <?php
-    for($nn=1;$nn<=$number_of_pagenation;$nn++){
-        echo "<a href='".get_site_url().'/wp-admin/admin.php?page=follow-up-id&page_id='.$nn."'>".$nn."</a> | ";
-    }
+    $ins = new Followup_List_Table();
+    $type1="fup_in_stock_products";
+    $ins->prepare_items($type1);
 
     ?>
-    <h2>IN stock products</h2>
-    <table>
-        <thead>
-        <tr>
-            <th>Product name</th>
-            <th>Product ID</th>
-            <th>Date</th>
-        </tr>
-        </thead>
-        <tbody>
+    <div class="wrap">
+        <div id="icon-users" class="icon32"></div>
+        <h2>Out of stock products</h2>
         <?php
-        $out_stock_data=get_option('fup_in_stock_products');
-        $number_of_pagenation=(int)(count($out_stock_data)/50)+1;
-        $pag_for=(int)$page_get*50;
-        $loop_start=(int)$pag_for-50;
-        for($i=$loop_start;$i<=$pag_for;$i++){
-            $os=explode("|", $out_stock_data[$i]);
-            echo "<tr><td><a href='".get_site_url()."/wp-admin/post.php?post=".$os[0]."&action=edit'>".get_the_title($os[0])."</a></td><td>".$os[0]."</td><td>".$os[1]."</td></tr>";
 
-        }
+
+        $outs->display();
+
         ?>
+    </div>
+    <div class="wrap">
+        <div id="icon-users" class="icon32"></div>
+        <h2>IN stock products</h2>
+        <?php
 
-        <td></td>
-        </tbody>
-    </table>
+
+        $ins->display();
+
+        ?>
+    </div>
+
     <?php
 }
 
@@ -211,3 +185,150 @@ function check_products_stock_after_order($order_id){
 }
 
 add_action('woocommerce_thankyou', 'check_products_stock_after_order', 10, 2);
+
+// WP_List_Table is not loaded automatically so we need to load it in our application
+if( ! class_exists( 'WP_List_Table' ) ) {
+    require_once( ABSPATH . 'wp-admin/includes/class-wp-list-table.php' );
+}
+
+/**
+ * Create a new table class that will extend the WP_List_Table
+ */
+class Followup_List_Table extends WP_List_Table
+{
+    /**
+     * Prepare the items for the table to process
+     *
+     * @return Void
+     */
+    public function prepare_items($type)
+    {
+
+        $data = array();
+        $out_stock_data=get_option($type);
+        foreach ($out_stock_data as $of){
+            $os=explode("|", $of);
+            $data[] = array(
+                'id'          => $os[0],
+                'product_name'       =>  "<a href='".get_site_url()."/wp-admin/post.php?post=".$os[0]."&action=edit'>".get_the_title($os[0])."</a>",
+                'date' =>$os[1],
+            );
+
+        }
+
+
+
+
+        $columns = $this->get_columns();
+        $hidden = $this->get_hidden_columns();
+        $sortable = $this->get_sortable_columns();
+
+        usort( $data, array( &$this, 'sort_data' ) );
+
+        $perPage = 25;
+        $currentPage = $this->get_pagenum();
+        $totalItems = count($data);
+
+        $this->set_pagination_args( array(
+            'total_items' => $totalItems,
+            'per_page'    => $perPage
+        ) );
+
+        $data = array_slice($data,(($currentPage-1)*$perPage),$perPage);
+
+        $this->_column_headers = array($columns, $hidden, $sortable);
+        $this->items = $data;
+    }
+
+    /**
+     * Override the parent columns method. Defines the columns to use in your listing table
+     *
+     * @return Array
+     */
+    public function get_columns()
+    {
+        $columns = array(
+            'id'          => 'ID',
+            'product_name'       => 'Product name',
+            'date' => 'Date',
+        );
+
+        return $columns;
+    }
+
+    /**
+     * Define which columns are hidden
+     *
+     * @return Array
+     */
+    public function get_hidden_columns()
+    {
+        return array();
+    }
+
+    /**
+     * Define the sortable columns
+     *
+     * @return Array
+     */
+    public function get_sortable_columns()
+    {
+        return array('title' => array('title', false));
+    }
+
+    /**
+     * Define what data to show on each column of the table
+     *
+     * @param  Array $item        Data
+     * @param  String $column_name - Current column name
+     *
+     * @return Mixed
+     */
+    public function column_default( $item, $column_name )
+    {
+        switch( $column_name ) {
+            case 'id':
+            case 'product_name':
+            case 'date':
+                return $item[ $column_name ];
+
+            default:
+                return print_r( $item, true ) ;
+        }
+    }
+
+    /**
+     * Allows you to sort the data by the variables set in the $_GET
+     *
+     * @return Mixed
+     */
+    private function sort_data( $a, $b )
+    {
+        // Set defaults
+        $orderby = 'product_name';
+        $order = 'asc';
+
+        // If orderby is set, use this as the sort column
+        if(!empty($_GET['orderby']))
+        {
+            $orderby = $_GET['orderby'];
+        }
+
+        // If order is set use this as the order
+        if(!empty($_GET['order']))
+        {
+            $order = $_GET['order'];
+        }
+
+
+        $result = strcmp( $a[$orderby], $b[$orderby] );
+
+        if($order === 'asc')
+        {
+            return $result;
+        }
+
+        return -$result;
+    }
+}
+?>
