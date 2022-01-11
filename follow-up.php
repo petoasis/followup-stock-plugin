@@ -13,8 +13,63 @@ Author URI: https://lvendr.com/
  */
 function follow_up_products_plugin_menu() {
     add_menu_page( 'Follow Up Product Options', 'Follow Up', 'manage_options', 'follow-up-id', 'follow_up_options','',5 );
+    add_submenu_page( 'follow-up-id', 'Follow Up Setting', 'Follow Up Setting', 'manage_options', 'follow_up_settings','follow_setting_display');
+
 }
 add_action( 'admin_menu', 'follow_up_products_plugin_menu');
+
+
+
+/*
+ * Follow Up settings
+ */
+function follow_setting_display(){
+    $outstock_per_page=get_option('outstock_per_page');
+    $instock_per_page=get_option('instock_per_page');
+
+    if(isset($_POST['submit'])){
+        if(isset($_POST['outstock_per_page'])){
+            update_option('outstock_per_page',$_POST['outstock_per_page'],'');
+        }
+        if(isset($_POST['instock_per_page'])){
+            update_option('instock_per_page',$_POST['instock_per_page'],'');
+        }
+
+    }
+    ?>
+    <div class="wrap">
+        <div id="icon-users" class="icon32"></div>
+        <h2>Follow Up plugin settings</h2>
+        <form method="post"  novalidate="novalidate">
+            <table class="form-table" role="presentation">
+
+                <tbody>
+                <tr>
+                    <th scope="row"><label for="order_status1">Out of stock products per page</label></th>
+                    <td>
+                        <input name="outstock_per_page" value="<?php echo $outstock_per_page;?>" type="number" id="outstock_per_page" class="regular-text">
+                    </td>
+
+                </tr>
+                <tr>
+                    <th scope="row"><label for="order_status2">IN stock products per page</label></th>
+                    <td>
+                        <input name="instock_per_page" value="<?php echo $instock_per_page;?>" type="number" id="instock_per_page" class="regular-text">
+                    </td>
+
+                </tr>
+                </tbody>
+            </table>
+
+
+            <p class="submit">
+                <input type="submit" name="submit" id="submit" class="button button-primary" value="Save Changes">
+            </p>
+        </form>
+    </div>
+
+    <?php
+}
 
 /*
  * Show follow up menu function
@@ -35,6 +90,13 @@ function register_stock_options() {
         $product_array=array('');
         add_option('fup_in_stock_products',$product_array,'','yes');
     }
+    if ( !get_option('instock_per_page') ){
+       add_option('instock_per_page',25,'','yes');
+    }
+    if ( !get_option('outstock_per_page') ){
+        add_option('outstock_per_page',25,'','yes');
+    }
+
 }
 add_action( 'init', 'register_stock_options' );
 
@@ -42,49 +104,38 @@ add_action( 'init', 'register_stock_options' );
  * Get Out-in-stock products Table
  */
 function out_in_stock_products(){
+    include_once( plugin_dir_path( __FILE__ ) . 'followup_list_table.php' );
+    $outs = new Followup_List_Table();
+    $type="fup_out_of_stock_products";
+    $outs->prepare_items($type);
+
+    $ins = new Followup_List_Table();
+    $type1="fup_in_stock_products";
+    $ins->prepare_items($type1);
+
     ?>
-    <h2>Out of stock products</h2>
-    <table>
-        <thead>
-        <tr>
-            <th>Product name</th>
-            <th>Product ID</th>
-            <th>Date</th>
-        </tr>
-        </thead>
-        <tbody>
-            <?php
-            $out_stock_data=get_option('fup_out_of_stock_products');
-            foreach ($out_stock_data as $outs){
-                $os=explode("|", $outs );
-                echo "<tr><td><a href='".get_site_url()."/wp-admin/post.php?post=".$os[0]."&action=edit'>".get_the_title($os[0])."</a></td><td>".$os[0]."</td><td>".$os[1]."</td></tr>";
-                
-            }
-            ?>
-            <td></td>
-        </tbody>
-    </table>
-    <h2>IN stock products</h2>
-    <table>
-        <thead>
-        <tr>
-            <th>Product name</th>
-            <th>Product ID</th>
-            <th>Date</th>
-        </tr>
-        </thead>
-        <tbody>
+    <div class="wrap">
+        <div id="icon-users" class="icon32"></div>
+        <h2>Out of stock products</h2>
         <?php
-        $in_stock_data=get_option('fup_in_stock_products');
-        foreach ($in_stock_data as $ins){
-            $in=explode("|", $ins );
-            echo "<tr><td><a href='".get_site_url()."/wp-admin/post.php?post=".$in[0]."&action=edit'>".get_the_title($in[0])."</a></td><td>".$in[0]."</td><td>".$in[1]."</td></tr>";
-        }
+
+
+        $outs->display();
+
         ?>
-        <td></td>
-        </tbody>
-    </table>
-<?php
+    </div>
+    <div class="wrap">
+        <div id="icon-users" class="icon32"></div>
+        <h2>IN stock products</h2>
+        <?php
+
+
+        $ins->display();
+
+        ?>
+    </div>
+
+    <?php
 }
 
 /*
@@ -193,3 +244,6 @@ function check_products_stock_after_order($order_id){
 }
 
 add_action('woocommerce_thankyou', 'check_products_stock_after_order', 10, 2);
+
+
+?>
