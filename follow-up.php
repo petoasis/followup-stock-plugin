@@ -13,8 +13,63 @@ Author URI: https://lvendr.com/
  */
 function follow_up_products_plugin_menu() {
     add_menu_page( 'Follow Up Product Options', 'Follow Up', 'manage_options', 'follow-up-id', 'follow_up_options','',5 );
+    add_submenu_page( 'follow-up-id', 'Follow Up Setting', 'Follow Up Setting', 'manage_options', 'follow_up_settings','follow_setting_display');
+
 }
 add_action( 'admin_menu', 'follow_up_products_plugin_menu');
+
+
+
+/*
+ * Follow Up settings
+ */
+function follow_setting_display(){
+    $outstock_per_page=get_option('outstock_per_page');
+    $instock_per_page=get_option('instock_per_page');
+
+    if(isset($_POST['submit'])){
+        if(isset($_POST['outstock_per_page'])){
+            update_option('outstock_per_page',$_POST['outstock_per_page'],'');
+        }
+        if(isset($_POST['instock_per_page'])){
+            update_option('instock_per_page',$_POST['instock_per_page'],'');
+        }
+
+    }
+    ?>
+    <div class="wrap">
+        <div id="icon-users" class="icon32"></div>
+        <h2>Follow Up plugin settings</h2>
+        <form method="post"  novalidate="novalidate">
+            <table class="form-table" role="presentation">
+
+                <tbody>
+                <tr>
+                    <th scope="row"><label for="order_status1">Out of stock products per page</label></th>
+                    <td>
+                        <input name="outstock_per_page" value="<?php echo $outstock_per_page;?>" type="number" id="outstock_per_page" class="regular-text">
+                    </td>
+
+                </tr>
+                <tr>
+                    <th scope="row"><label for="order_status2">IN stock products per page</label></th>
+                    <td>
+                        <input name="instock_per_page" value="<?php echo $instock_per_page;?>" type="number" id="instock_per_page" class="regular-text">
+                    </td>
+
+                </tr>
+                </tbody>
+            </table>
+
+
+            <p class="submit">
+                <input type="submit" name="submit" id="submit" class="button button-primary" value="Save Changes">
+            </p>
+        </form>
+    </div>
+
+    <?php
+}
 
 /*
  * Show follow up menu function
@@ -35,6 +90,13 @@ function register_stock_options() {
         $product_array=array('');
         add_option('fup_in_stock_products',$product_array,'','yes');
     }
+    if ( !get_option('instock_per_page') ){
+       add_option('instock_per_page',25,'','yes');
+    }
+    if ( !get_option('outstock_per_page') ){
+        add_option('outstock_per_page',25,'','yes');
+    }
+
 }
 add_action( 'init', 'register_stock_options' );
 
@@ -42,10 +104,7 @@ add_action( 'init', 'register_stock_options' );
  * Get Out-in-stock products Table
  */
 function out_in_stock_products(){
-    $page_get=$_GET['page_id'];
-    if(empty($page_get)){
-        $page_get=1;
-    }
+    include_once( plugin_dir_path( __FILE__ ) . 'followup_list_table.php' );
     $outs = new Followup_List_Table();
     $type="fup_out_of_stock_products";
     $outs->prepare_items($type);
@@ -186,149 +245,5 @@ function check_products_stock_after_order($order_id){
 
 add_action('woocommerce_thankyou', 'check_products_stock_after_order', 10, 2);
 
-// WP_List_Table is not loaded automatically so we need to load it in our application
-if( ! class_exists( 'WP_List_Table' ) ) {
-    require_once( ABSPATH . 'wp-admin/includes/class-wp-list-table.php' );
-}
 
-/**
- * Create a new table class that will extend the WP_List_Table
- */
-class Followup_List_Table extends WP_List_Table
-{
-    /**
-     * Prepare the items for the table to process
-     *
-     * @return Void
-     */
-    public function prepare_items($type)
-    {
-
-        $data = array();
-        $out_stock_data=get_option($type);
-        foreach ($out_stock_data as $of){
-            $os=explode("|", $of);
-            $data[] = array(
-                'id'          => $os[0],
-                'product_name'       =>  "<a href='".get_site_url()."/wp-admin/post.php?post=".$os[0]."&action=edit'>".get_the_title($os[0])."</a>",
-                'date' =>$os[1],
-            );
-
-        }
-
-
-
-
-        $columns = $this->get_columns();
-        $hidden = $this->get_hidden_columns();
-        $sortable = $this->get_sortable_columns();
-
-        usort( $data, array( &$this, 'sort_data' ) );
-
-        $perPage = 25;
-        $currentPage = $this->get_pagenum();
-        $totalItems = count($data);
-
-        $this->set_pagination_args( array(
-            'total_items' => $totalItems,
-            'per_page'    => $perPage
-        ) );
-
-        $data = array_slice($data,(($currentPage-1)*$perPage),$perPage);
-
-        $this->_column_headers = array($columns, $hidden, $sortable);
-        $this->items = $data;
-    }
-
-    /**
-     * Override the parent columns method. Defines the columns to use in your listing table
-     *
-     * @return Array
-     */
-    public function get_columns()
-    {
-        $columns = array(
-            'id'          => 'ID',
-            'product_name'       => 'Product name',
-            'date' => 'Date',
-        );
-
-        return $columns;
-    }
-
-    /**
-     * Define which columns are hidden
-     *
-     * @return Array
-     */
-    public function get_hidden_columns()
-    {
-        return array();
-    }
-
-    /**
-     * Define the sortable columns
-     *
-     * @return Array
-     */
-    public function get_sortable_columns()
-    {
-        return array('title' => array('title', false));
-    }
-
-    /**
-     * Define what data to show on each column of the table
-     *
-     * @param  Array $item        Data
-     * @param  String $column_name - Current column name
-     *
-     * @return Mixed
-     */
-    public function column_default( $item, $column_name )
-    {
-        switch( $column_name ) {
-            case 'id':
-            case 'product_name':
-            case 'date':
-                return $item[ $column_name ];
-
-            default:
-                return print_r( $item, true ) ;
-        }
-    }
-
-    /**
-     * Allows you to sort the data by the variables set in the $_GET
-     *
-     * @return Mixed
-     */
-    private function sort_data( $a, $b )
-    {
-        // Set defaults
-        $orderby = 'product_name';
-        $order = 'asc';
-
-        // If orderby is set, use this as the sort column
-        if(!empty($_GET['orderby']))
-        {
-            $orderby = $_GET['orderby'];
-        }
-
-        // If order is set use this as the order
-        if(!empty($_GET['order']))
-        {
-            $order = $_GET['order'];
-        }
-
-
-        $result = strcmp( $a[$orderby], $b[$orderby] );
-
-        if($order === 'asc')
-        {
-            return $result;
-        }
-
-        return -$result;
-    }
-}
 ?>
